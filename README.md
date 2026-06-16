@@ -1,11 +1,17 @@
 # claude-cost
 
-A CLI tool that reads your local Claude Code conversation files and shows you how much API value you're getting from your subscription.
+A script that reads your local Claude Code conversations and shows what the same usage would cost at API rack rates — including cache tokens, which Claude Code's built-in display doesn't count.
+
+**For users of the [Claude Code CLI](https://claude.ai/code).** Requires no API key and sends no data anywhere — it reads the JSONL files Claude Code writes to `~/.claude/projects/` on your machine.
+
+---
+
+Claude Code's built-in cost display only counts input + output tokens. Cache reads and writes are the dominant cost for long-context workflows — often 3–5× the raw token cost. This tool counts all of it and compares the total against your subscription price.
 
 ```
 Claude Code — Usage Report  (June 2026: 2026-06-01 → 2026-06-16)
 ──────────────────────────────────────────────────────────────────
-  API value               $  579.46
+  API value               $  579.46   ← what this usage costs at rack rates
   Subscription            $  100.00/month
   ROI                          5.8x
 
@@ -22,11 +28,9 @@ Claude Code — Usage Report  (June 2026: 2026-06-01 → 2026-06-16)
   misc                     8s  $  42.26  ████░░░░░░░░░░░░░░░░
 ```
 
-Claude Code's built-in cost display only counts input + output tokens. This tool includes **cache read and write tokens**, which are the dominant cost for long-context workflows — often 3–5x the raw token cost. That's the number that matters when comparing against API pay-as-you-go pricing.
-
 ## Install
 
-Requires Python 3 (no dependencies beyond stdlib). Conversations are read from `~/.claude/projects/`, which Claude Code writes automatically.
+Requires Python 3 (no dependencies beyond stdlib).
 
 ```bash
 curl -o ~/.local/bin/claude-cost https://raw.githubusercontent.com/suryamp/claude-cost/main/claude-cost
@@ -56,7 +60,7 @@ claude-cost --week    # last 7 days
 
 ## Configuration
 
-Create `~/.config/claude-cost/config.json` to override the subscription cost (default: $100):
+Create `~/.config/claude-cost/config.json` to set your subscription cost (default: $100):
 
 ```json
 {
@@ -66,7 +70,9 @@ Create `~/.config/claude-cost/config.json` to override the subscription cost (de
 
 ## Pricing
 
-Rates are loaded per model from a built-in table. Each assistant message in the JSONL files includes the model that handled it, so mixed-model sessions are priced correctly.
+Rates are loaded per model from the table below. Each assistant message in the JSONL files records which model handled it, so mixed-model sessions are priced correctly. Unknown models fall back to Sonnet 4.6 rates.
+
+*Last verified: 2026-06-16. Source: [anthropic.com/pricing](https://www.anthropic.com/pricing)*
 
 | Model | Input | Output | Cache write (5 min) | Cache write (1 hr) | Cache read |
 |---|---|---|---|---|---|
@@ -75,10 +81,4 @@ Rates are loaded per model from a built-in table. Each assistant message in the 
 | Claude Sonnet 4.6 | $3.00 | $15.00 | $3.75 | $6.00 | $0.30 |
 | Claude Haiku 4.5 | $1.00 | $5.00 | $1.25 | $2.00 | $0.10 |
 
-All rates are per million tokens. Unknown models fall back to Sonnet 4.6 rates. To update pricing, edit the `PRICING` dict at the top of the script.
-
-## How it works
-
-Claude Code stores every conversation as a JSONL file under `~/.claude/projects/<project>/`. Each assistant turn includes a `usage` object with token counts broken down by type and a `model` field identifying which Claude model handled that turn. This tool scans all of those files, computes cost per message using model-specific rates, and reports what the same usage would cost without a subscription.
-
-No data leaves your machine.
+All rates are per million tokens. To update pricing, edit the `PRICING` dict at the top of the script.
